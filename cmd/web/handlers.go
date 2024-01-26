@@ -9,29 +9,15 @@ import (
 	"strconv"
 )
 
-type post struct {
-	id      int
-	title   string
-	content string
-}
-
 type PostDTO struct {
 	Title   string `json:"title"`
 	Content string `json:"content"`
 }
 
-var posts = []post{
-	{id: 1, title: "Post One", content: "Post One Content"},
-	{id: 2, title: "Post Two", content: "Post Two Content"},
-	{id: 3, title: "Post Three", content: "Post Three Content"},
-}
-
-var methodNotAllowedResponse = lib.Response{Status: false, Result: nil, Message: "Method Not Allowed"}
-
 func (app *application) getPost(res http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodGet {
 		app.errorLog.Println("Method Not Allowed")
-		lib.WriteJSON(res, http.StatusMethodNotAllowed, methodNotAllowedResponse)
+		lib.WriteJSON(res, http.StatusMethodNotAllowed, lib.MethodNotAllowed)
 		return
 	}
 
@@ -39,7 +25,7 @@ func (app *application) getPost(res http.ResponseWriter, req *http.Request) {
 
 	if err != nil {
 		app.errorLog.Println(err)
-		lib.WriteJSON(res, http.StatusInternalServerError, lib.Response{Status: false, Result: nil, Message: "Internal Server Error"})
+		lib.WriteJSON(res, http.StatusInternalServerError, lib.InternalServerError)
 		return
 	}
 
@@ -50,7 +36,7 @@ func (app *application) getPost(res http.ResponseWriter, req *http.Request) {
 func (app *application) getSinglePost(res http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodGet {
 		app.errorLog.Println("Method Not Allowed")
-		lib.WriteJSON(res, http.StatusMethodNotAllowed, methodNotAllowedResponse)
+		lib.WriteJSON(res, http.StatusMethodNotAllowed, lib.MethodNotAllowed)
 		return
 	}
 
@@ -67,7 +53,7 @@ func (app *application) getSinglePost(res http.ResponseWriter, req *http.Request
 			return
 		}
 		app.errorLog.Println(err)
-		lib.WriteJSON(res, http.StatusInternalServerError, lib.Response{Status: false, Result: nil, Message: "Internal Server Error"})
+		lib.WriteJSON(res, http.StatusInternalServerError, lib.InternalServerError)
 		return
 
 	}
@@ -77,7 +63,7 @@ func (app *application) getSinglePost(res http.ResponseWriter, req *http.Request
 func (app *application) createPost(res http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodPost {
 		app.errorLog.Println("Method Not Allowed")
-		lib.WriteJSON(res, http.StatusMethodNotAllowed, methodNotAllowedResponse)
+		lib.WriteJSON(res, http.StatusMethodNotAllowed, lib.MethodNotAllowed)
 		return
 	}
 
@@ -87,7 +73,7 @@ func (app *application) createPost(res http.ResponseWriter, req *http.Request) {
 	id, err := app.post.Insert(body.Title, body.Content)
 	if err != nil {
 		app.errorLog.Println(err)
-		lib.WriteJSON(res, http.StatusInternalServerError, lib.Response{Status: false, Result: nil, Message: "Internal Server Error"})
+		lib.WriteJSON(res, http.StatusInternalServerError, lib.InternalServerError)
 		return
 	}
 

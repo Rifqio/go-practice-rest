@@ -7,11 +7,11 @@ import (
 )
 
 type Post struct {
-	ID      int       `json:"id"`
-	Title   string    `json:"title"`
-	Content string    `json:"content"`
-	Created time.Time `json:"created"`
-	Expires time.Time `json:"expires"`
+	ID      int            `json:"id"`
+	Title   string         `json:"title"`
+	Content sql.NullString `json:"content"`
+	Created time.Time      `json:"created"`
+	Expires time.Time      `json:"expires"`
 }
 
 type PostModel struct {

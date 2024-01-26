@@ -15,6 +15,7 @@ type application struct {
 	errorLog *log.Logger
 	infoLog  *log.Logger
 	debugLog *log.Logger
+	httpLog  *log.Logger
 	post     *models.PostModel
 }
 
@@ -29,6 +30,7 @@ func main() {
 
 	infoLog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
 	debugLog := log.New(os.Stdout, "DEBUG\t", log.Ldate|log.Ltime|log.Lshortfile)
+	httpLog := log.New(os.Stdout, "HTTP\t", log.Ldate|log.Ltime)
 	errorLog := log.New(os.Stderr, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
 
 	db, err := openDB(*dsn)
@@ -42,6 +44,7 @@ func main() {
 		errorLog: errorLog,
 		infoLog:  infoLog,
 		debugLog: debugLog,
+		httpLog:  httpLog,
 		post:     &models.PostModel{DB: db},
 	}
 
@@ -68,25 +71,3 @@ func openDB(dsn string) (*sql.DB, error) {
 
 	return db, nil
 }
-
-// With httprouter package
-//func main() {
-//	mux := httprouter.New()
-//	mux.GET("/", getPost)
-//	mux.POST("/", postPost)
-//	mux.GET("/cat", getCat)
-//
-//	log.Print("Server started on localhost:5000")
-//	http.ListenAndServe("localhost:5000", mux)
-//}
-
-// Vanilla way to handle route or without additional package
-//func main() {
-//	//http.Handle("/", http.HandlerFunc(getAndPost))
-//	//http.Handle("/cat", http.HandlerFunc(getCat))
-//	http.HandleFunc("/", getAndPost)
-//	http.HandleFunc("/cat", getCat)
-//
-//	log.Print("Server started on localhost:5000")
-//	http.ListenAndServe("localhost:5000", nil)
-//}
