@@ -5,6 +5,7 @@ import (
 	"errors"
 	"example.com/practice-rest/internal/models"
 	"example.com/practice-rest/pkg/lib"
+	"github.com/julienschmidt/httprouter"
 	"net/http"
 	"strconv"
 )
@@ -14,13 +15,7 @@ type PostDTO struct {
 	Content string `json:"content"`
 }
 
-func (app *application) getPosts(res http.ResponseWriter, req *http.Request) {
-	if req.Method != http.MethodGet {
-		app.errorLog.Println("Method Not Allowed")
-		lib.WriteJSON(res, http.StatusMethodNotAllowed, lib.MethodNotAllowed)
-		return
-	}
-
+func (app *application) getPosts(res http.ResponseWriter, _ *http.Request) {
 	posts, err := app.post.Latest()
 
 	if err != nil {
@@ -34,15 +29,16 @@ func (app *application) getPosts(res http.ResponseWriter, req *http.Request) {
 }
 
 func (app *application) getSinglePost(res http.ResponseWriter, req *http.Request) {
-	if req.Method != http.MethodGet {
-		app.errorLog.Println("Method Not Allowed")
-		lib.WriteJSON(res, http.StatusMethodNotAllowed, lib.MethodNotAllowed)
-		return
-	}
-
-	id, err := strconv.Atoi(req.URL.Query().Get("id"))
-	if err != nil || id < 1 {
-		lib.WriteJSON(res, http.StatusBadRequest, lib.Response{Status: false, Result: nil, Message: "Invalid Post ID"})
+	// When httprouter is parsing a request, the values of any named parameters
+	// will be stored in the request context. We'll talk about request context
+	// in detail later in the book, but for now it's enough to know that you can
+	// use the ParamsFromContext() function to retrieve a slice containing these
+	// parameter names and values like so:
+	params := httprouter.ParamsFromContext(req.Context())
+	id, err := strconv.Atoi(params.ByName("id"))
+	if err != nil {
+		app.errorLog.Println(err)
+		lib.WriteJSON(res, http.StatusInternalServerError, lib.InternalServerError)
 		return
 	}
 
@@ -61,12 +57,6 @@ func (app *application) getSinglePost(res http.ResponseWriter, req *http.Request
 }
 
 func (app *application) createPost(res http.ResponseWriter, req *http.Request) {
-	if req.Method != http.MethodPost {
-		app.errorLog.Println("Method Not Allowed")
-		lib.WriteJSON(res, http.StatusMethodNotAllowed, lib.MethodNotAllowed)
-		return
-	}
-
 	body := new(PostDTO)
 	json.NewDecoder(req.Body).Decode(&body)
 
