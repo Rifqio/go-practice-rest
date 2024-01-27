@@ -4,21 +4,24 @@ import (
 	"encoding/json"
 	"errors"
 	"example.com/practice-rest/internal/models"
+	"example.com/practice-rest/internal/validator"
 	"example.com/practice-rest/pkg/lib"
 	"github.com/julienschmidt/httprouter"
+	"github.com/samber/lo"
 	"net/http"
 	"strconv"
 )
 
 type PostDTO struct {
-	Title   string `json:"title"`
-	Content string `json:"content"`
+	Title   string `json:"title" validate:"required"`
+	Content string `json:"content" validate:"required"`
+	validator.Validator
 }
 
 func (app *application) getPosts(res http.ResponseWriter, _ *http.Request) {
 	posts, err := app.post.Latest()
 
-	if err != nil {
+	if lo.IsNotEmpty(err) {
 		app.errorLog.Println(err)
 		lib.WriteJSON(res, http.StatusInternalServerError, lib.InternalServerError)
 		return
@@ -36,7 +39,7 @@ func (app *application) getSinglePost(res http.ResponseWriter, req *http.Request
 	// parameter names and values like so:
 	params := httprouter.ParamsFromContext(req.Context())
 	id, err := strconv.Atoi(params.ByName("id"))
-	if err != nil {
+	if lo.IsNotEmpty(err) {
 		app.errorLog.Println(err)
 		lib.WriteJSON(res, http.StatusInternalServerError, lib.InternalServerError)
 		return
@@ -62,25 +65,18 @@ func (app *application) createPost(res http.ResponseWriter, req *http.Request) {
 	body := new(PostDTO)
 	json.NewDecoder(req.Body).Decode(&body)
 
-	fieldErrors := make(map[string]string)
+	body.CheckField(validator.NotEmpty(body.Title), "title", "title cannot be blank")
+	body.CheckField(validator.MaxChars(body.Title, 100), "title", "this field is too long (maximum is 100 characters)")
 
-	if body.Title == "" {
-		fieldErrors["title"] = "Title cannot be blank"
-	} else if len(body.Title) > 100 {
-		fieldErrors["title"] = "This field is too long (maximum is 100 characters)"
-	}
+	body.CheckField(validator.NotEmpty(body.Content), "content", "content cannot be blank")
 
-	if body.Content == "" {
-		fieldErrors["content"] = "Content cannot be blank"
-	}
-
-	if len(fieldErrors) > 0 {
-		lib.WriteJSON(res, http.StatusBadRequest, lib.Response{Status: false, Result: fieldErrors, Message: "Validation Error"})
+	if !body.Valid() {
+		lib.WriteJSON(res, http.StatusBadRequest, lib.Response{Status: false, Result: body.Errors, Message: "Validation Error" })
 		return
 	}
 
 	id, err := app.post.Insert(body.Title, body.Content)
-	if err != nil {
+	if lo.IsNotEmpty(err) {
 		app.errorLog.Println(err)
 		lib.WriteJSON(res, http.StatusInternalServerError, lib.InternalServerError)
 		return
