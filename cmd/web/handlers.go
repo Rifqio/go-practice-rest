@@ -57,8 +57,27 @@ func (app *application) getSinglePost(res http.ResponseWriter, req *http.Request
 }
 
 func (app *application) createPost(res http.ResponseWriter, req *http.Request) {
+	// Limit the size of the request body to 4KB
+	req.Body = http.MaxBytesReader(res, req.Body, 4096)
 	body := new(PostDTO)
 	json.NewDecoder(req.Body).Decode(&body)
+
+	fieldErrors := make(map[string]string)
+
+	if body.Title == "" {
+		fieldErrors["title"] = "Title cannot be blank"
+	} else if len(body.Title) > 100 {
+		fieldErrors["title"] = "This field is too long (maximum is 100 characters)"
+	}
+
+	if body.Content == "" {
+		fieldErrors["content"] = "Content cannot be blank"
+	}
+
+	if len(fieldErrors) > 0 {
+		lib.WriteJSON(res, http.StatusBadRequest, lib.Response{Status: false, Result: fieldErrors, Message: "Validation Error"})
+		return
+	}
 
 	id, err := app.post.Insert(body.Title, body.Content)
 	if err != nil {

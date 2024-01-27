@@ -1,20 +1,18 @@
-// Make POST Request
-POST http://localhost:5000/post/create
+// Create Post
+POST http://localhost:5000/post
 Content-Type: application/json
 Authorization: Bearer {{$random.uuid}}
 
 {
-    "title" : "New Post Title",
-    "content": "This IS the content"
+    "title" : "This is the title",
+    "content": "New content"
 }
 
-###
-// Make GET Request
-GET http://localhost:5000/posts
+### Get Latest Posts With LIMIT 10
+GET http://localhost:5000/post
 
-###
-GET http://localhost:5000/post?id=4
+### Get Single Post
+GET http://localhost:5000/post/1
 
-###
-// Health Check
+### Checking API Status
 GET http://localhost:5000
