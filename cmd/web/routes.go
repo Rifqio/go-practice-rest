@@ -1,15 +1,19 @@
 package main
 
-import "net/http"
+import (
+	"github.com/julienschmidt/httprouter"
+	"github.com/justinas/alice"
+	"net/http"
+)
 
-// Update the signature for the routes() method so that it returns a
-// http.Handler instead of *http.ServeMux.
 func (app *application) routes() http.Handler {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", healthCheck)
-	mux.HandleFunc("/post", app.getSinglePost)
-	mux.HandleFunc("/posts", app.getPost)
-	mux.HandleFunc("/post/create", app.createPost)
+	router := httprouter.New()
+	router.HandlerFunc(http.MethodGet,"/", healthCheck)
+	router.HandlerFunc(http.MethodGet,"/post/:id", app.getSinglePost)
+	router.HandlerFunc(http.MethodGet,"/post", app.getPosts)
+	router.HandlerFunc(http.MethodPost, "/post", app.createPost)
 
-	return app.requestLogger(secureHeaders(mux))
+	standard := alice.New(app.recoverPanic, app.requestLogger, secureHeaders)
+	return standard.Then(mux)
 }

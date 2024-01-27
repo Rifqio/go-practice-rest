@@ -14,7 +14,7 @@ type PostDTO struct {
 	Content string `json:"content"`
 }
 
-func (app *application) getPost(res http.ResponseWriter, req *http.Request) {
+func (app *application) getPosts(res http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodGet {
 		app.errorLog.Println("Method Not Allowed")
 		lib.WriteJSON(res, http.StatusMethodNotAllowed, lib.MethodNotAllowed)

@@ -22,3 +22,19 @@ func (app *application) requestLogger(next http.Handler) http.Handler {
 		next.ServeHTTP(res, req)
 	})
 }
+
+func (app *application) recoverPanic(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+		// Create a deferred function (which will always be run in the event
+		// of a panic as Go unwinds the stack).
+		defer func() {
+			// Use the builtin recover function to check if there has been a
+			// panic or not. If there has...
+			if err := recover(); err != nil {
+				res.Header().Set("Connection", "close")
+				app.serverError(res, err.(error))
+			}
+		}()
+		next.ServeHTTP(res, req)
+	})
+}
