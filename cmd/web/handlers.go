@@ -82,6 +82,8 @@ func (app *application) createPost(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	app.sessionManger.Put(req.Context(), "flash", "Post Created Successfully")
+
 	app.infoLog.Println(body)
 	lib.WriteJSON(res, http.StatusOK, lib.Response{Status: true, Result: id, Message: "New Post Created"})
 }

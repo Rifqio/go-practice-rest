@@ -8,10 +8,12 @@ import (
 
 func (app *application) routes() http.Handler {
 	router := httprouter.New()
+
+	dynamic := alice.New(app.sessionManger.LoadAndSave)
 	router.HandlerFunc(http.MethodGet,"/", healthCheck)
-	router.HandlerFunc(http.MethodGet,"/post/:id", app.getSinglePost)
-	router.HandlerFunc(http.MethodGet,"/post", app.getPosts)
-	router.HandlerFunc(http.MethodPost, "/post", app.createPost)
+	router.Handler(http.MethodGet,"/post/:id", dynamic.ThenFunc(app.getSinglePost))
+	router.Handler(http.MethodGet,"/post", dynamic.ThenFunc(app.getPosts))
+	router.Handler(http.MethodPost, "/post", dynamic.ThenFunc(app.createPost))
 
 	router.NotFound = http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 		app.pageNotFound(res)

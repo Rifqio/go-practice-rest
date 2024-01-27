@@ -80,7 +80,7 @@ func (post *PostModel) Latest() ([]*Post, error) {
 	defer rows.Close()
 
 	// Initialize empty slice to hold the posts
-	posts := []*Post{}
+	var posts []*Post
 
 	// Use rows.Next to iterate through the rows in the resultset. This
 	// prepares the first (and then each subsequent) row to be acted on by the
