@@ -6,17 +6,13 @@ import (
 	"example.com/practice-rest/internal/models"
 	"example.com/practice-rest/internal/validator"
 	"example.com/practice-rest/pkg/lib"
+	"fmt"
 	"github.com/julienschmidt/httprouter"
 	"github.com/samber/lo"
+	"golang.org/x/crypto/bcrypt"
 	"net/http"
 	"strconv"
 )
-
-type PostDTO struct {
-	Title   string `json:"title" validate:"required"`
-	Content string `json:"content" validate:"required"`
-	validator.Validator
-}
 
 func (app *application) getPosts(res http.ResponseWriter, _ *http.Request) {
 	posts, err := app.post.Latest()
@@ -60,6 +56,12 @@ func (app *application) getSinglePost(res http.ResponseWriter, req *http.Request
 }
 
 func (app *application) createPost(res http.ResponseWriter, req *http.Request) {
+	type PostDTO struct {
+		Title   string `json:"title" validate:"required"`
+		Content string `json:"content" validate:"required"`
+		validator.Validator
+	}
+
 	// Limit the size of the request body to 4KB
 	req.Body = http.MaxBytesReader(res, req.Body, 4096)
 	body := new(PostDTO)
@@ -71,7 +73,7 @@ func (app *application) createPost(res http.ResponseWriter, req *http.Request) {
 	body.CheckField(validator.NotEmpty(body.Content), "content", "content cannot be blank")
 
 	if !body.Valid() {
-		lib.WriteJSON(res, http.StatusBadRequest, lib.Response{Status: false, Result: body.Errors, Message: "Validation Error" })
+		lib.WriteJSON(res, http.StatusBadRequest, lib.Response{Status: false, Result: body.Errors, Message: "Validation Error"})
 		return
 	}
 
@@ -86,6 +88,52 @@ func (app *application) createPost(res http.ResponseWriter, req *http.Request) {
 
 	app.infoLog.Println(body)
 	lib.WriteJSON(res, http.StatusOK, lib.Response{Status: true, Result: id, Message: "New Post Created"})
+}
+
+func (app *application) userSignup(res http.ResponseWriter, req *http.Request) {
+	type UserSignupDTO struct {
+		Name     string `json:"name" validate:"required"`
+		Email    string `json:"email" validate:"required"`
+		Password string `json:"password" validate:"required"`
+		validator.Validator
+	}
+
+	body := new(UserSignupDTO)
+	json.NewDecoder(req.Body).Decode(&body)
+
+	body.CheckField(validator.NotEmpty(body.Name), "name", "name cannot be blank")
+	body.CheckField(validator.MaxChars(body.Name, 100), "name", "this field is too long (maximum is 100 characters)")
+
+	body.CheckField(validator.NotEmpty(body.Email), "email", "email cannot be blank")
+	body.CheckField(validator.Matches(body.Email, validator.EmailRX), "email", "email is not valid")
+
+	body.CheckField(validator.NotEmpty(body.Password), "password", "password cannot be blank")
+	body.CheckField(validator.MinChars(body.Password, 8), "password", "password must be at least 8 characters")
+
+	if !body.Valid() {
+		lib.WriteJSON(res, http.StatusBadRequest, lib.Response{Status: false, Result: body.Errors, Message: "Validation Error"})
+		return
+	}
+
+	hashedPass, errHashing := bcrypt.GenerateFromPassword([]byte(body.Password), bcrypt.DefaultCost)
+	id, errInserting := app.user.Insert(body.Name, body.Email, string(hashedPass))
+
+	if err := errors.Join(errHashing, errInserting); lo.IsNotEmpty(err) {
+		app.errorLog.Println(err)
+		lib.WriteJSON(res, http.StatusInternalServerError, lib.InternalServerError)
+		return
+	}
+
+	app.infoLog.Println("User Signup Successfully", id, body.Email)
+	lib.WriteJSON(res, http.StatusOK, lib.Response{Status: true, Result: body.Email, Message: "User Signup Successfully"})
+}
+
+func (app *application) userLogin(res http.ResponseWriter, req *http.Request) {
+	fmt.Println("User Login")
+}
+
+func (app *application) userLogout(res http.ResponseWriter, req *http.Request) {
+	fmt.Println("User Logout")
 }
 
 func healthCheck(res http.ResponseWriter, req *http.Request) {

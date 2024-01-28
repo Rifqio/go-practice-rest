@@ -1,5 +1,5 @@
 // Create Post
-POST http://localhost:5000/post
+POST https://localhost:5000/post
 Content-Type: application/json
 Authorization: Bearer {{$random.uuid}}
 
@@ -9,10 +9,22 @@ Authorization: Bearer {{$random.uuid}}
 }
 
 ### Get Latest Posts With LIMIT 10
-GET http://localhost:5000/post
+GET https://localhost:5000/post
 
 ### Get Single Post
-GET http://localhost:5000/post/1
+GET https://localhost:5000/post/1
 
 ### Checking API Status
-GET http://localhost:5000
+GET https://localhost:5000
+
+### ----------------------------- ###
+
+### User Registration
+POST https://localhost:5000/user/signup
+Content-Type: application/json
+
+{
+  "name": "Xiaoli Hossain",
+  "email": "testssss@gmail.com",
+  "password": "12345678"
+}
