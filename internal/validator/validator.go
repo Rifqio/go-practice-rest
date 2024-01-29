@@ -3,13 +3,19 @@ package validator
 import "regexp"
 
 type Validator struct {
-	Errors map[string]string
+	Errors         map[string]string
+	NonFieldErrors []string
 }
 
 var EmailRX = regexp.MustCompile(`^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,4}$`)
+
 // Valid returns true if there are no errors, otherwise it returns false.
 func (v *Validator) Valid() bool {
-	return len(v.Errors) == 0
+	return len(v.Errors) == 0 && len(v.NonFieldErrors) == 0
+}
+
+func (v *Validator) AddNonFieldError(message string){
+	v.NonFieldErrors = append(v.NonFieldErrors, message)
 }
 
 func (v *Validator) AddFieldError(key, message string) {

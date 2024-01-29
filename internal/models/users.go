@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"github.com/go-sql-driver/mysql"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type User struct {
@@ -40,7 +41,31 @@ func (user *UserModel) Insert(name, email, password string) (int, error) {
 }
 
 func (user *UserModel) Authenticate(email, password string) (int, error) {
-	return 0, nil
+	var id int
+	var hashedPassword []byte
+
+	usr := &User{}
+
+	query := `select id, hashed_password from users where email = ?`
+	err := user.DB.QueryRow(query, email).Scan(&usr.Email, &usr.HashedPassword)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return 0, ErrInvalidCredentials
+		}
+		return 0, err
+	}
+
+	hashedPassword = []byte(usr.HashedPassword)
+
+	err = bcrypt.CompareHashAndPassword(hashedPassword, []byte(password))
+	if err != nil {
+		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
+			return 0, ErrInvalidCredentials
+		}
+		return 0, err
+	}
+
+	return id, nil
 }
 
 func (user *UserModel) Get(id int) (*User, error) {

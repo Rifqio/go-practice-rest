@@ -6,7 +6,6 @@ import (
 	"example.com/practice-rest/internal/models"
 	"example.com/practice-rest/internal/validator"
 	"example.com/practice-rest/pkg/lib"
-	"fmt"
 	"github.com/julienschmidt/httprouter"
 	"github.com/samber/lo"
 	"golang.org/x/crypto/bcrypt"
@@ -119,6 +118,11 @@ func (app *application) userSignup(res http.ResponseWriter, req *http.Request) {
 	id, errInserting := app.user.Insert(body.Name, body.Email, string(hashedPass))
 
 	if err := errors.Join(errHashing, errInserting); lo.IsNotEmpty(err) {
+		if errors.Is(err, models.ErrDuplicateEmail) {
+			app.infoLog.Println("Duplicate Email")
+			lib.WriteJSON(res, http.StatusBadRequest, lib.Response{Status: false, Result: nil, Message: "Email Already Exists"})
+			return
+		}
 		app.errorLog.Println(err)
 		lib.WriteJSON(res, http.StatusInternalServerError, lib.InternalServerError)
 		return
@@ -129,11 +133,60 @@ func (app *application) userSignup(res http.ResponseWriter, req *http.Request) {
 }
 
 func (app *application) userLogin(res http.ResponseWriter, req *http.Request) {
-	fmt.Println("User Login")
+	type UserLoginDTO struct {
+		Email    string `json:"email" validate:"required"`
+		Password string `json:"password" validate:"required"`
+		validator.Validator
+	}
+
+	body := new(UserLoginDTO)
+	json.NewDecoder(req.Body).Decode(&body)
+
+	body.CheckField(validator.NotEmpty(body.Email), "email", "email cannot be blank")
+	body.CheckField(validator.Matches(body.Email, validator.EmailRX), "email", "email is not valid")
+
+	body.CheckField(validator.NotEmpty(body.Password), "password", "password cannot be blank")
+	body.CheckField(validator.MinChars(body.Password, 8), "password", "password must be at least 8 characters")
+
+	if !body.Valid() {
+		lib.WriteJSON(res, http.StatusBadRequest, lib.Response{Status: false, Result: body.Errors, Message: "Validation Error"})
+		return
+	}
+
+	id, err := app.user.Authenticate(body.Email, body.Password)
+	if err != nil {
+		if errors.Is(err, models.ErrInvalidCredentials) {
+			app.infoLog.Println("Invalid Credentials")
+			lib.WriteJSON(res, http.StatusUnauthorized, lib.Response{Status: false, Result: nil, Message: "Invalid Credentials"})
+			return
+		}
+		app.errorLog.Println(err)
+		lib.WriteJSON(res, http.StatusInternalServerError, lib.InternalServerError)
+		return
+	}
+
+	err = app.sessionManger.RenewToken(req.Context())
+	if err != nil {
+		app.errorLog.Println(err)
+		lib.WriteJSON(res, http.StatusInternalServerError, lib.InternalServerError)
+		return
+	}
+
+	app.sessionManger.Put(req.Context(), "authenticatedUserID", id)
+	app.infoLog.Println("User Login Successfully", id, body.Email)
+	lib.WriteJSON(res, http.StatusOK, lib.Response{Status: true, Result: body.Email, Message: "User Login Successfully"})
 }
 
 func (app *application) userLogout(res http.ResponseWriter, req *http.Request) {
-	fmt.Println("User Logout")
+	err := app.sessionManger.Destroy(req.Context())
+	if lo.IsNotEmpty(err) {
+		app.errorLog.Println(err)
+		lib.WriteJSON(res, http.StatusInternalServerError, lib.InternalServerError)
+		return
+	}
+
+	app.sessionManger.Remove(req.Context(), "authenticatedUserID")
+	lib.WriteJSON(res, http.StatusOK, lib.Response{Status: true, Result: nil, Message: "User Logout Successfully"})
 }
 
 func healthCheck(res http.ResponseWriter, req *http.Request) {

@@ -1,4 +1,4 @@
-// Create Post
+### Create Post
 POST https://localhost:5000/post
 Content-Type: application/json
 Authorization: Bearer {{$random.uuid}}
@@ -17,14 +17,23 @@ GET https://localhost:5000/post/1
 ### Checking API Status
 GET https://localhost:5000
 
-### ----------------------------- ###
+
 
 ### User Registration
 POST https://localhost:5000/user/signup
 Content-Type: application/json
 
 {
-  "name": "Xiaoli Hossain",
-  "email": "testssss@gmail.com",
+  "name": "Amal Yusuf",
+  "email": "testing123@gmail.com",
+  "password": "12345678"
+}
+
+### User Login
+POST https://localhost:5000/user/login
+Content-Type: application/json
+
+{
+  "email": "testing123@mail.com",
   "password": "12345678"
 }
